@@ -55,8 +55,8 @@ def q12_PLA_update(all_yn , all_xn):
     w = np.zeros(array_size)
     
     while correct_judge_num < 5 * read_line_num:
+        random_vector_index = random.randint(0, 199)
         while True:
-            random_vector_index = random.randint(0, 199)
             predict_yn = np.sign(np.dot(w, all_xn[random_vector_index]))
             
             if predict_yn == 0:
