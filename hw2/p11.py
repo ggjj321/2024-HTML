@@ -73,8 +73,8 @@ def ein_eout_experiment():
     
     print(sign, theta, e_in)
     
-    # postive_min_theta, postive_e_in = ein(xs, ys, thetas, 1)
-    # negative_min_theta, negative_e_in = ein(xs, ys, thetas, -1)
+    # postive_min_theta, postive_e_in = p11_ein(xs, ys, thetas, 1)
+    # negative_min_theta, negative_e_in = p11_ein(xs, ys, thetas, -1)
     
     # if postive_e_in < negative_e_in:
     #     e_in = postive_e_in

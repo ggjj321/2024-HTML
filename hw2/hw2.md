@@ -1,3 +1,10 @@
+## Question 5
+
+GPT suggested that there is a sequence 1, 4, 9 with $N = 2$. However, if $N = 2$, we only know the first $N - 1$ term, which is just a single number, so it’s not possible to generate multiple equations, such as the sequence 1, 4, 9. With only one known term, we cannot solve for the three coefficients of a quadratic polynomial. Therefore, I disagree with GPT's final answer.
+
+However, in GPT's example, there are $N + 1$ terms of an integer sequence. We can list $N + 1$ polynomial equations and represent them as a matrix equation $A x = b$, where $A$ is formed by all the input values from $x^0, x^1, \dots, x^n$, and $x$ takes values from 1 to $N + 1$. $A$ is a Vandermonde matrix. The vector $x$ is a one-dimensional matrix that contains all the coefficients, such as $a_0, a_1, \dots, a_n$. The vector $b$ is also one-dimensional, containing all the solutions of the equations. Because the Vandermonde matrix is invertible, we can solve for the coefficients using $x = A^{-1}b$. Since the dimension of the null space of $x$ is zero, we get a unique solution for the coefficients. So, I agree with GPT's example but not with GPT's final answer.
+
+
 ## Question 6
 
 $$
@@ -412,3 +419,191 @@ $$
 $$
 E_{\text{out}}(h_{s,\theta}) = u + v \cdot \lvert \theta \rvert, \ \text{where } u = \frac{1}{2} - v \text{ is proved.}
 $$
+
+## Question 11
+
+The median of E_out(g) - E_in(g) is 0.1043796702747559
+
+### scatter plot
+![scatter](Figure_1.png)
+
+### code part
+
+```python
+def p11_ein(xs, ys, thetas, sign):
+    e_in_number = 0
+    min_theta = thetas[0]
+    
+    predictions = sign * np.sign(xs - thetas[0])
+    predictions[predictions == 0] = -1
+    
+    errors = predictions != ys
+    e_in_number = np.sum(errors)
+    
+    min_e_in_number = e_in_number
+
+    for theta_index in range(1, len(thetas)):
+        x_i = xs[theta_index - 1]
+        y_i = ys[theta_index - 1]
+        
+        old_prediction = sign * np.sign(x_i - thetas[theta_index - 1])
+        if x_i - thetas[theta_index - 1] == 0:
+            old_prediction = -sign
+        
+        new_prediction = sign * np.sign(x_i - thetas[theta_index])
+        if x_i - thetas[theta_index] == 0:
+            new_prediction = -sign
+        
+        if old_prediction != new_prediction:
+            if new_prediction != y_i:
+                e_in_number += 1
+            else:
+                e_in_number -= 1
+        
+        if e_in_number < min_e_in_number:
+            min_e_in_number = e_in_number
+            min_theta = thetas[theta_index]
+    
+    return min_theta, min_e_in_number / len(xs)
+
+def ein_eout_experiment():
+    xs = np.random.uniform(-1, 1, 12)
+    ys = []
+    thetas = []
+    p = 0.15
+
+    xs.sort()
+    
+    for x in xs:
+        sign_x = np.sign(x)
+        if random.random() < p:
+            sign_x = -sign_x
+        ys.append(sign_x)
+
+    thetas = [-1] + [(xs[i] + xs[i+1])/2 for i in range(len(xs)-1)]
+
+    postive_min_theta, postive_e_in = p11_ein(xs, ys, thetas, 1)
+    negative_min_theta, negative_e_in = p11_ein(xs, ys, thetas, -1)
+    
+    if postive_e_in < negative_e_in:
+        e_in = postive_e_in
+        min_theta = postive_min_theta
+        sign = 1
+    else:
+        e_in = negative_e_in
+        min_theta = negative_min_theta
+        sign = -1
+    
+    v = sign * (0.5 - p)
+    u = 0.5 - v
+    
+    e_out = u + v * abs(min_theta)
+    
+    return e_in, e_out
+
+eins = []
+eouts = []
+for _ in range(2000):
+    e_in, e_out = ein_eout_experiment()
+    eins.append(e_in)
+    eouts.append(e_out)
+    
+diffs = np.array(eouts) - np.array(eins)
+median_diff = np.median(diffs)
+print(f"The median of E_out(g) - E_in(g) is {median_diff}")
+
+plt.scatter(eins, eouts)
+
+plt.title('Scatter Plot of Ein(g) vs Eout(g)')
+plt.xlabel('Ein(g)')
+plt.ylabel('Eout(g)')
+
+plt.show()
+```
+
+## Question 12
+The median of E_out(g) - E_in(g) is 0.006161511297298444
+
+### scatter plot compare
+
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 25px; text-align: center;">
+
+<div>
+  <img src="Figure_1.png" alt="Initial repository" style="width:100%;">
+  <p>lowest Ein select</p>
+</div>
+
+<div>
+  <img src="p12.png" alt="Python Submission example" style="width:100%;">
+  <p>random select</p>
+</div>
+
+</div>
+
+### My findings
+In the method of selecting the lowest $E_{in}$, the gap between $E_{in}$​ and $E_{out}$ can be controlled within 0.4. However, when using random selection, the gap may range between 0 and 1, but based on the median, the gap is actually smaller for random selection. It's observed that in random selection, when both $E_{in}$​ and $E_{out}$​ are larger, the gap tends to be smaller, which aligns with the situation described on the left side of the $d_{vc}$​ in the lecture notes. On the other hand, when using the lowest $E_{in}$​ selection method, a smaller $E_{in}$​ results in a larger gap between $E_{in}$​ and $E_{out}$​, which corresponds to the situation described on the right side of the $d_{vc}$​ in the lecture notes.
+![lecture](lecture.png)
+
+### code part
+
+```python
+def p12_e_in(xs, ys, thetas):
+    e_ins = []
+    signs = [1, -1]
+    
+    for sign in signs:
+        for theta in thetas:
+            e_in = 0
+            for x_index in range(len(xs)):
+                if sign * np.sign(xs[x_index] - theta) != ys[x_index]:
+                    e_in += 1
+            e_ins.append([sign, theta, e_in])
+            
+    random_e_in = random.choice(e_ins)
+    return random_e_in[0], random_e_in[1], random_e_in[2] / len(xs)
+def ein_eout_experiment():
+    xs = np.random.uniform(-1, 1, 12)
+    ys = []
+    thetas = []
+    p = 0.15
+
+    xs.sort()
+    
+    for x in xs:
+        sign_x = np.sign(x)
+        if random.random() < p:
+            sign_x = -sign_x
+        ys.append(sign_x)
+
+    thetas = [-1] + [(xs[i] + xs[i+1])/2 for i in range(len(xs)-1)]
+    
+    sign, theta, e_in = p12_e_in(xs, ys, thetas)
+    
+    v = sign * (0.5 - p)
+    u = 0.5 - v
+    
+    e_out = u + v * abs(theta)
+    
+    return e_in, e_out
+    
+eins = []
+eouts = []
+for _ in range(2000):
+    e_in, e_out = ein_eout_experiment()
+    eins.append(e_in)
+    eouts.append(e_out)
+    
+diffs = np.array(eouts) - np.array(eins)
+median_diff = np.median(diffs)
+print(f"The median of E_out(g) - E_in(g) is {median_diff}")
+
+plt.scatter(eins, eouts)
+
+plt.title('Scatter Plot of Ein(g) vs Eout(g)')
+plt.xlabel('Ein(g)')
+plt.ylabel('Eout(g)')
+
+plt.show()
+```
+
+### Quetion 13
