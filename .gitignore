@@ -8,3 +8,9 @@
 
 # 忽略所有 PowerPoint PPTX 文件
 *.pptx
+
+cpusmall_scale
+
+*.json
+
+.DS_Store

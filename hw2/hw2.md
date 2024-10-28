@@ -607,3 +607,21 @@ plt.show()
 ```
 
 ### Quetion 13
+
+A 1-dimensional decision stump model is equal to the positive and negative ray, and the growth function that is offered by lecture 5 page 6 is $2N$. The decision of each dimension is independent. So the growth function of multi-dimensional decision stump model is $d(2n) = 2dn$.
+
+We want to find the minimum break point of $\mathcal{H}$. Let the break point be $k$. We get:
+
+\[
+m_{\mathcal{H}}(k) < 2^k, \quad 2dk < 2^k
+\]
+
+The exponential function will grow faster than the polynomial function. We can try $k = d, k = d+1, k = d+2, \dots$
+
+Let $k = d$, if $d = 1$, then $2d^2 = 2^{d+1}$ can be shattered.
+
+Let $k = d+1$, if $d = 1$, then $2d(d+1) = 2^{d+1}$ can be shattered.
+
+Let $k = d+2$, if $d = 2$, then $2d(d+2) = 2^{d+2}$ can be shattered.
+
+Let $k = d+3$, in all cases, $2d(d+3) < 2^{d+3}$. $k = d+3$ is the break point. Therefore, the VC dimension upper bound is $dvc \leq d+2$.
