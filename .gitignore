@@ -16,3 +16,8 @@ cpusmall_scale
 .DS_Store
 
 html-2024-fall-final-project-stage-1/
+
+mnist.scale
+mnist.scale.t
+
+__pycache__/
