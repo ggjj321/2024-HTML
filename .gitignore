@@ -9,6 +9,8 @@
 # 忽略所有 PowerPoint PPTX 文件
 *.pptx
 
+*.txt
+
 cpusmall_scale
 
 *.json
@@ -16,6 +18,8 @@ cpusmall_scale
 .DS_Store
 
 html-2024-fall-final-project-stage-1/
+
+liblinear/
 
 mnist.scale
 mnist.scale.t
