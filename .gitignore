@@ -18,6 +18,7 @@ cpusmall_scale
 .DS_Store
 
 html-2024-fall-final-project-stage-1/
+html-2024-fall-final-project-stage-2/
 
 liblinear/
 
@@ -25,3 +26,5 @@ mnist.scale
 mnist.scale.t
 
 __pycache__/
+
+output/

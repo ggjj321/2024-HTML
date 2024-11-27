@@ -32,13 +32,41 @@ def date_one_hot_process(df):
 train_df_encoded = date_one_hot_process(train_df)
 test_df_encoded = date_one_hot_process(test_df)
 
+# train_df_encoded = train_df[["home_team_abbr", "away_team_abbr", "home_team_win"]]
+# train_df_encoded = pd.get_dummies(train_df_encoded, columns=["home_team_abbr", "away_team_abbr"])
+
 print(train_df_encoded.shape)
-print(test_df_encoded.shape)
+# print(test_df_encoded.shape)
+
+# %%
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import SelectFromModel
+
+# 分離特徵和標籤
+X = train_df_encoded.drop(columns=['home_team_win'])
+y = train_df_encoded['home_team_win']
+
+# 構建 L1 正則化的邏輯回歸模型
+model = LogisticRegression(penalty='l1', solver='liblinear', C=1.0)
+model.fit(X, y)
+
+# 使用 SelectFromModel 選擇特徵
+selector = SelectFromModel(model, prefit=True)
+X_new = selector.transform(X)
+
+# 獲取選中的特徵列名
+selected_columns = X.columns[selector.get_support()]
+
+# 將 NumPy 數組轉回 DataFrame
+X_new_df = pd.DataFrame(X_new, columns=selected_columns)
+
+# 查看結果
+print(X_new_df.head())
 
 # %%
 # logstic regression
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression , LinearRegression
 from sklearn.metrics import accuracy_score, classification_report
 
 # team_name_name_columns_list = list(df_encoded)[1:]
@@ -47,66 +75,69 @@ from sklearn.metrics import accuracy_score, classification_report
 # y_train = train_df_encoded['home_team_win']
 # X_test = test_df_encoded.drop(columns=['home_team_win'])
 # y_test = test_df_encoded['home_team_win']
-X = train_df_encoded.drop(columns=['home_team_win'])
-y = train_df_encoded['home_team_win']
+# X = train_df_encoded.drop(columns=['home_team_win'])
+# y = train_df_encoded['home_team_win']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 
 # %%
 # 預測
-# accuracy_list = []
-for c in range(1000):
+from sklearn.model_selection import cross_val_score
+import numpy as np
+
+accuracy_list = []
+max_accuracy = 0
+max_c = -1
+for c in range(200):
     print(c)
-    c+=10000
     c = c / 100000
     if c == 0:
         model = LogisticRegression()
-        model.fit(X_train, y_train)
-
-        y_pred = model.predict(X_test)
-        # 計算準確率
-        accuracy = accuracy_score(y_test, y_pred)
     else:
-        model = LogisticRegression(penalty='l2', C=c)
-        model.fit(X_train, y_train)
+        model = LogisticRegression(C=c)
 
-        y_pred = model.predict(X_test)
-        # 計算準確率
-        accuracy = accuracy_score(y_test, y_pred)
+    # 計算準確率
+    # Using cross-validation with 5 folds
+    scores = cross_val_score(model, X_new_df, y, cv=5, scoring='accuracy')
+    accuracy = np.mean(scores)
     
     accuracy_list.append(accuracy)
     
+    if accuracy > max_accuracy:
+        max_c = c
+        max_accuracy = accuracy
+    
     print("Accuracy:", accuracy)
 
-print(f"best accuracy : {max(accuracy_list)}")
 
 # %%
 import matplotlib.pyplot as plt
-import numpy as np
+
+print(f"best accuracy : {max_accuracy} best c : {max_c}")
 
 print(len(accuracy_list))
 
 print(max(accuracy_list))
-# x = np.arange(0.00001, 0.1 + 0.00001, 0.00001)  
+x = np.arange(0.00001, 0.02 + 0.00001, 0.00001)  
 
-# # 繪製圖表
-# plt.plot(x ,accuracy_list)
-# plt.xlim(0.00001, 0.1)
+# 繪製圖表
+plt.plot(x ,accuracy_list)
+plt.xlim(0.00001, 0.02)
 
-# # 添加標題和標籤
-# plt.title("Sample Plot")
-# plt.xlabel("constraint")
-# plt.ylabel("accuracy")
+# 添加標題和標籤
+plt.title("Sample Plot")
+plt.xlabel("constraint")
+plt.ylabel("accuracy")
 
-# # 顯示圖表
-# plt.show()
+# 顯示圖表
+plt.show()
 # %%
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import accuracy_score
 
 accuracy_list = []
 
-for c in range(1, 3000):
+for c in range(1, 200):
     print(c)
     c = c / 100000  # 計算 C 值
     
@@ -134,5 +165,47 @@ aug_df = pd.read_csv("html-2024-fall-final-project-stage-1/training_df_aug.csv")
 
 print(df.shape[1])
 print(aug_df.shape[1])
+
+# %%
+# generate data
+test_df = pd.read_csv("/Users/wukeyang/ntu_course/2024-HTML/final_project/html-2024-fall-final-project-stage-1/test_df_aug.csv")
+c = 0.00199
+model = LogisticRegression(C=c)
+model.fit(X_new_df, y)
+# %%
+# predict
+# test_df_encoded = test_df[["home_team_abbr", "away_team_abbr"]]
+# test_df_encoded = pd.get_dummies(test_df_encoded, columns=["home_team_abbr", "away_team_abbr"])
+
+# test_df_encoded = date_one_hot_process(test_df)
+
+# 獲取選中的特徵列名
+selected_columns = X.columns[selector.get_support()]
+
+# 將 NumPy 數組轉回 DataFrame
+test_df_new_df = pd.DataFrame(test_df_encoded, columns=selected_columns)
+# print(test_df_encoded.shape)
+# y_submmit = model.predict(test_df_encoded)
+
+# %%
+import csv
+
+y_submmit = model.predict(test_df_new_df)
+# 假設有一個列表
+data_list = y_submmit
+
+# 指定輸出的 CSV 文件名稱
+output_file = 'output/logstic feature selection.csv'
+
+# 打開文件並寫入內容
+with open(output_file, mode='w', newline='', encoding='utf-8') as file:
+    writer = csv.writer(file)
+    # 寫入標題行（可選）
+    writer.writerow(['id', 'home_team_win'])
+    # 寫入數據
+    for idx, value in enumerate(data_list):
+        writer.writerow([idx, value])
+
+print(f"CSV file '{output_file}' generated successfully.")
 
 # %%
