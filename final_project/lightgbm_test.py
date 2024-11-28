@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.feature_selection import SelectKBest, f_classif
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import LabelEncoder
 
 train_df = pd.read_csv("html-2024-fall-final-project-stage-1/training_df_aug.csv")
 
@@ -17,13 +18,16 @@ def date_one_hot_process(df):
     df['month'] = df['date'].dt.month
     df['day'] = df['date'].dt.day
     df['weekday'] = df['date'].dt.weekday
-
-    # 移除原始的 date 欄位
-    df = df.drop(columns=['date', 'home_team_season', 'away_team_season','home_pitcher', 'away_pitcher', "id", "year"])
-
-    df_encoded = pd.get_dummies(df, columns=["home_team_abbr", "away_team_abbr"])
     
-    return df_encoded
+    label_encoders = {}
+    
+    for column in ["home_team_abbr", "away_team_abbr", 'home_pitcher', 'away_pitcher', 'home_team_season', 'away_team_season']:
+        label_encoders[column] = LabelEncoder()
+        df[column] = label_encoders[column].fit_transform(df[column])
+        
+    df = df.drop(columns=['date', "year"])
+    
+    return df
 
 train_df_encoded = date_one_hot_process(train_df)
 
@@ -142,7 +146,7 @@ y = train_df_encoded['home_team_win']
 
 accuracy_list = []
 
-for feature_num in range(5, 275, 5):
+for feature_num in range(5, 240, 5):
     # 特徵選擇 - 選擇最佳的 5 個特徵
     selector = SelectKBest(score_func=f_classif, k=feature_num)
     X_selected = selector.fit_transform(X, y)
@@ -196,7 +200,7 @@ for feature_num in range(5, 275, 5):
     accuracy_list.append(mean_accuracy)
 
 # 繪製 accuracy list 對應 range(5, 200, 5)
-k_values = list(range(5, 275, 5))
+k_values = list(range(5, 240, 5))
 
 print(max(accuracy_list))
 

@@ -13,6 +13,8 @@ print(train_df.shape)
 # only_team_name_df = df[["home_team_abbr", "away_team_abbr", "home_team_win"]]
 # 將 date 欄位轉換為 datetime 型別
 # 將 date 欄位轉換為 datetime 型別
+from sklearn.preprocessing import LabelEncoder
+
 def date_one_hot_process(df):
     df['date'] = pd.to_datetime(df['date'])
 
@@ -21,19 +23,32 @@ def date_one_hot_process(df):
     df['month'] = df['date'].dt.month
     df['day'] = df['date'].dt.day
     df['weekday'] = df['date'].dt.weekday
-
-    # 移除原始的 date 欄位
-    df = df.drop(columns=['date', 'home_team_season', 'away_team_season','home_pitcher', 'away_pitcher', "id", "year"])
-
-    df_encoded = pd.get_dummies(df, columns=["home_team_abbr", "away_team_abbr"])
     
-    return df_encoded
+    print("no error")
+    
+    label_encoders = {}
+
+    # 對指定欄位進行 Label Encoding
+    columns_to_encode = ["home_pitcher", "away_pitcher", "home_team_season", "away_team_season"]
+
+    for column in columns_to_encode:
+        le = LabelEncoder()
+        df[column] = le.fit_transform(df[column])
+        label_encoders[column] = le  # 保存每個欄位的編碼器以便反向轉換
+    
+    df = df.drop(columns=['date', "year"])
+    
+    return df
 
 train_df_encoded = date_one_hot_process(train_df)
-test_df_encoded = date_one_hot_process(test_df)
+# test_df_encoded = date_one_hot_process(test_df)
 
 # train_df_encoded = train_df[["home_team_abbr", "away_team_abbr", "home_team_win"]]
 # train_df_encoded = pd.get_dummies(train_df_encoded, columns=["home_team_abbr", "away_team_abbr"])
+
+# 分離特徵和標籤
+X = train_df_encoded.drop(columns=['home_team_win'])
+y = train_df_encoded['home_team_win']
 
 print(train_df_encoded.shape)
 # print(test_df_encoded.shape)
@@ -41,10 +56,6 @@ print(train_df_encoded.shape)
 # %%
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_selection import SelectFromModel
-
-# 分離特徵和標籤
-X = train_df_encoded.drop(columns=['home_team_win'])
-y = train_df_encoded['home_team_win']
 
 # 構建 L1 正則化的邏輯回歸模型
 model = LogisticRegression(penalty='l1', solver='liblinear', C=1.0)
@@ -75,9 +86,9 @@ from sklearn.metrics import accuracy_score, classification_report
 # y_train = train_df_encoded['home_team_win']
 # X_test = test_df_encoded.drop(columns=['home_team_win'])
 # y_test = test_df_encoded['home_team_win']
-# X = train_df_encoded.drop(columns=['home_team_win'])
-# y = train_df_encoded['home_team_win']
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X = train_df_encoded.drop(columns=['home_team_win'])
+y = train_df_encoded['home_team_win']
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 
 # %%
@@ -88,23 +99,23 @@ import numpy as np
 accuracy_list = []
 max_accuracy = 0
 max_c = -1
-for c in range(200):
-    print(c)
+for c in range(1000):
     c = c / 100000
     if c == 0:
         model = LogisticRegression()
     else:
-        model = LogisticRegression(C=c)
+        model = LogisticRegression(penalty='l2', C=c)
 
     # 計算準確率
     # Using cross-validation with 5 folds
-    scores = cross_val_score(model, X_new_df, y, cv=5, scoring='accuracy')
+    scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
     accuracy = np.mean(scores)
     
     accuracy_list.append(accuracy)
     
     if accuracy > max_accuracy:
         max_c = c
+        print("max c : " + str(max_c))
         max_accuracy = accuracy
     
     print("Accuracy:", accuracy)
@@ -118,11 +129,11 @@ print(f"best accuracy : {max_accuracy} best c : {max_c}")
 print(len(accuracy_list))
 
 print(max(accuracy_list))
-x = np.arange(0.00001, 0.02 + 0.00001, 0.00001)  
+x = np.arange(0.00001, 0.01 + 0.00001, 0.00001)  
 
 # 繪製圖表
 plt.plot(x ,accuracy_list)
-plt.xlim(0.00001, 0.02)
+plt.xlim(0.00001, 0.01)
 
 # 添加標題和標籤
 plt.title("Sample Plot")
@@ -131,6 +142,91 @@ plt.ylabel("accuracy")
 
 # 顯示圖表
 plt.show()
+#%%
+# select_k_best + logisitic constraint
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.model_selection import cross_val_score
+import numpy as np
+# 設定想要選擇的特徵數量
+# k = 10  # 指定選擇的特徵數量
+
+# # 分離類別欄位
+# team_abbr = X[["home_team_abbr", "away_team_abbr"]]
+# X_drop_abbr = X.drop(columns=["home_team_abbr", "away_team_abbr"])
+
+# # 使用 SelectKBest 選擇特徵
+# selector = SelectKBest(score_func=f_classif, k=k)  # 可以改為 mutual_info_classif 等其他方法
+# X_new = selector.fit_transform(X_drop_abbr, y)  # 注意需要提供目標變數 y
+
+# # 獲取選中的特徵列名
+# selected_columns = X_drop_abbr.columns[selector.get_support()]
+
+# # 將 NumPy 數組轉回 DataFrame
+# X_new_df = pd.DataFrame(X_new, columns=selected_columns)
+
+# # 合併類別欄位
+# merged_inner = pd.concat([X_new_df, team_abbr.reset_index(drop=True)], axis=1)
+
+# # 對類別欄位進行 One-Hot Encoding
+# train_df_encoded = pd.get_dummies(merged_inner, columns=["home_team_abbr", "away_team_abbr"])
+
+# # 打印結果
+# print(train_df_encoded.head())
+
+
+accuracy_dict = {}
+max_accuracy = 0
+max_c = -1
+max_num = -1
+for c in range(100):
+    print(c)
+    team_abbr = X[["home_team_abbr", "away_team_abbr"]]
+    X_drop_abbr = X.drop(columns=["home_team_abbr", "away_team_abbr"])
+    
+    c = c / 10000
+    accuracy_dict[str(c)] = []
+    if c == 0:
+        model = LogisticRegression()
+    else:
+        model = LogisticRegression(penalty='l2', C=c)
+        
+    for model_num in range(5, 120, 5):
+        # 分離類別欄位
+        team_abbr = X[["home_team_abbr", "away_team_abbr"]]
+        X_drop_abbr = X.drop(columns=["home_team_abbr", "away_team_abbr"])
+
+        # 使用 SelectKBest 選擇特徵
+        selector = SelectKBest(score_func=f_classif, k=model_num)  # 可以改為 mutual_info_classif 等其他方法
+        X_new = selector.fit_transform(X_drop_abbr, y)  # 注意需要提供目標變數 y
+
+        # 獲取選中的特徵列名
+        selected_columns = X_drop_abbr.columns[selector.get_support()]
+
+        # 將 NumPy 數組轉回 DataFrame
+        X_new_df = pd.DataFrame(X_new, columns=selected_columns)
+
+        # 合併類別欄位
+        merged_inner = pd.concat([X_new_df, team_abbr.reset_index(drop=True)], axis=1)
+
+        # 對類別欄位進行 One-Hot Encoding
+        train_df_encoded = pd.get_dummies(merged_inner, columns=["home_team_abbr", "away_team_abbr"])
+
+        # 計算準確率
+        # Using cross-validation with 5 folds
+        scores = cross_val_score(model, train_df_encoded, y, cv=5, scoring='accuracy')
+        accuracy = np.mean(scores)
+        print(str(c))
+        # accuracy_dict[str(c)].append(accuracy)
+        
+        if accuracy > max_accuracy:
+            max_c = c
+            max_accuracy = accuracy
+            max_num = model_num
+    
+        print(f"Accuracy: {accuracy}, c : {c}, feature_num {model_num}")
+#%%
+print(f"Accuracy: {max_accuracy}, c : {max_c}, feature_num {max_num}")
 # %%
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import accuracy_score
@@ -168,34 +264,68 @@ print(aug_df.shape[1])
 
 # %%
 # generate data
-test_df = pd.read_csv("/Users/wukeyang/ntu_course/2024-HTML/final_project/html-2024-fall-final-project-stage-1/test_df_aug.csv")
-c = 0.00199
-model = LogisticRegression(C=c)
-model.fit(X_new_df, y)
-# %%
-# predict
-# test_df_encoded = test_df[["home_team_abbr", "away_team_abbr"]]
-# test_df_encoded = pd.get_dummies(test_df_encoded, columns=["home_team_abbr", "away_team_abbr"])
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.model_selection import cross_val_score
+import numpy as np
 
-# test_df_encoded = date_one_hot_process(test_df)
+k = 65
+team_abbr = X[["home_team_abbr", "away_team_abbr"]]
+X_drop_abbr = X.drop(columns=["home_team_abbr", "away_team_abbr"])
+
+# 使用 SelectKBest 選擇特徵
+selector = SelectKBest(score_func=f_classif, k=k)  # 可以改為 mutual_info_classif 等其他方法
+X_new = selector.fit_transform(X_drop_abbr, y)  # 注意需要提供目標變數 y
 
 # 獲取選中的特徵列名
-selected_columns = X.columns[selector.get_support()]
+selected_columns = X_drop_abbr.columns[selector.get_support()]
 
 # 將 NumPy 數組轉回 DataFrame
-test_df_new_df = pd.DataFrame(test_df_encoded, columns=selected_columns)
-# print(test_df_encoded.shape)
-# y_submmit = model.predict(test_df_encoded)
+X_new_df = pd.DataFrame(X_new, columns=selected_columns)
+
+# 合併類別欄位
+merged_inner = pd.concat([X_new_df, team_abbr.reset_index(drop=True)], axis=1)
+
+# 對類別欄位進行 One-Hot Encoding
+train_df_encoded = pd.get_dummies(merged_inner, columns=["home_team_abbr", "away_team_abbr"])
+
+c = 0.0011
+model = LogisticRegression(penalty='l2', C=c)
+model.fit(train_df_encoded, y)
+# %%
+# predict
+test_df = pd.read_csv("/Users/wukeyang/ntu_course/2024-HTML/final_project/html-2024-fall-final-project-stage-1/test_df_aug_sort.csv")
+
+test_df_encode = date_one_hot_process(test_df)
+
+team_abbr = test_df_encode[["home_team_abbr", "away_team_abbr"]]
+test_drop_abbr = test_df_encode.drop(columns=["home_team_abbr", "away_team_abbr"])
+
+# # 獲取選中的特徵列名
+selected_columns = test_drop_abbr.columns[selector.get_support()]
+
+# # 將 NumPy 數組轉回 DataFrame
+test_new_df = pd.DataFrame(test_drop_abbr, columns=selected_columns)
+
+# # 合併類別欄位
+merged_inner = pd.concat([test_new_df, team_abbr.reset_index(drop=True)], axis=1)
+
+# # 對類別欄位進行 One-Hot Encoding
+test_df_encode = pd.get_dummies(merged_inner, columns=["home_team_abbr", "away_team_abbr"])
+
+# # # test_df_encoded = test_df[["home_team_abbr", "away_team_abbr"]]
+# # # test_df_encoded = pd.get_dummies(test_df_encoded, columns=["home_team_abbr", "away_team_abbr"])
+y_submmit = model.predict(test_df_encode)
 
 # %%
 import csv
 
-y_submmit = model.predict(test_df_new_df)
+# y_submmit = model.predict(test_df_new_df)
 # 假設有一個列表
 data_list = y_submmit
 
 # 指定輸出的 CSV 文件名稱
-output_file = 'output/logstic feature selection.csv'
+output_file = 'output/logstic aug select 65 debug.csv'
 
 # 打開文件並寫入內容
 with open(output_file, mode='w', newline='', encoding='utf-8') as file:
