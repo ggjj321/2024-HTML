@@ -1,0 +1,71 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float} 
+\usepackage{booktabs}
+
+\begin{document}
+
+\section{Logistic regression experiment}
+
+For binary classification, logistic regression was initially used for experimentation. Logistic regression computes the weighted sum of features through a linear function, and the result is transformed into a probability using the sigmoid function. The corresponding formula is as follows:
+\[
+h(\mathbf{x}) = \frac{1}{1 + \exp(-\mathbf{w}^T \mathbf{x})}
+\]
+The model predicts the probability of the home team winning. If the probability exceeds 50\%, the home team is classified as the winner; otherwise, it is classified as a loss.
+
+We first proposed a hypothesis that there exists a mutual dominance relationship among teams. Based on this hypothesis, additional features were gradually introduced. To prevent overfitting, \( L_2 \) regularization was applied in logistic regression. The process started by selecting 5 features and gradually increased to 120 features, adding 5 features at a time. For each set of features, various \( L_2 \) regularization constraints, ranging from 0.00001 to 0.02, were tested. Finally, 5-fold cross-validation was conducted to identify the optimal combination of the number of features and the regularization constraint.
+
+\subsection{Mutual Dominance Relationship Among Teams}  
+
+To test this hypothesis, we performed an experiment where the home team abbreviation and the away team abbreviation were one-hot encoded, and all other features were excluded. In this experiment, there were no feature selection combinations; only different \(L_2\) regularization constraints were tested. The results showed that the best validation accuracy was 0.54, with Stage 1 achieving 0.56843 and Stage 2 achieving 0.54069.
+
+% From the figure, it can be observed that as the constraint becomes smaller, the corresponding \(\lambda\) (regularization strength) becomes larger. Consequently, the left side of the line plot corresponds to underfitting, while the right side corresponds to overfitting. This hypothesis-based approach effectively evaluates whether overfitting occurs.
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.3\textwidth]{image.png} 
+%     \caption{An example figure.}
+%     \label{fig:example} 
+% \end{figure}
+
+\subsection{Feature Selection}  
+
+When the feature dimensions are too high, the VC dimension also increases, leading to a more complex model that is prone to overfitting. Therefore, feature selection was performed. In this case, ANOVA F-test was used to rank the features based on their importance. The ANOVA F-test evaluates whether the mean difference of a feature across different classes is statistically significant. If a feature has a high discriminative ability for class labels, its mean value will vary significantly across different classes, resulting in a higher F-score. The formula for ANOVA is as follows:
+
+\[
+F = \frac{\text{Between-group Variance}}{\text{Within-group Variance}}
+\]
+
+Where:
+\[
+\text{Between-group Variance} = \frac{\sum_{i=1}^{k} n_i (\bar{x}_i - \bar{x}_T)^2}{k-1},
+\]
+\[
+\text{Within-group Variance} = \frac{\sum_{i=1}^{k} \sum_{j=1}^{n_i} (x_{ij} - \bar{x}_i)^2}{N-k}.
+\]
+
+Here, \( k \) represents the number of groups, \( n_i \) is the sample size of the \( i \)-th group, \( \bar{x}_i \) is the mean of the \( i \)-th group, \( \bar{x}_T \) is the overall mean, and \( N \) is the total number of samples.
+
+\subsection{Experiment Result}  
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Feature} & \textbf{Stage 1} & \textbf{Stage 2} & \textbf{Validation} \\ 
+\midrule
+One-hot team name & 0.56843 & 0.54069 & 0.54 \\ 
+One-hot team name + best feature & \textbf{0.58037} & \textbf{0.58554} & 0.5667 \\ 
+\bottomrule
+\end{tabular}
+\caption{Performance comparison of features in different stages and validation.}
+\label{tab:final_results}
+\end{table}
+
+From the above experiments, we observed that applying one-hot encoding to team names followed by selecting the best features using \texttt{SelectKBest} achieved scores above 0.58 for both Stage 1 and Stage 2. Even with different test data, this approach still yielded satisfactory results, suggesting that this method effectively mitigates overfitting.
+
+
+\end{document}

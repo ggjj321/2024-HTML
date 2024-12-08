@@ -94,12 +94,13 @@ y = train_df_encoded['home_team_win']
 # %%
 # 預測
 from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LogisticRegression
 import numpy as np
 
 accuracy_list = []
 max_accuracy = 0
 max_c = -1
-for c in range(1000):
+for c in range(2000):
     c = c / 100000
     if c == 0:
         model = LogisticRegression()
@@ -261,9 +262,23 @@ aug_df = pd.read_csv("html-2024-fall-final-project-stage-1/training_df_aug.csv")
 
 print(df.shape[1])
 print(aug_df.shape[1])
+# %%
+# only one hot train
+c = 0.0076
+model = LogisticRegression(penalty='l2', C=c)
+model.fit(X, y)
 
 # %%
-# generate data
+# only one hot predict
+test_df = pd.read_csv("/Users/wukeyang/ntu_course/2024-HTML/final_project/html2024-fall-final-project-stage-2/stage2_aug_sort.csv")
+
+test_df_encoded = test_df[["home_team_abbr", "away_team_abbr"]]
+test_df_encoded = pd.get_dummies(test_df_encoded, columns=["home_team_abbr", "away_team_abbr"])
+
+print(test_df_encoded.shape)
+y_submmit = model.predict(test_df_encoded)
+# %%
+# generate data select k best
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.model_selection import cross_val_score
@@ -287,14 +302,14 @@ X_new_df = pd.DataFrame(X_new, columns=selected_columns)
 merged_inner = pd.concat([X_new_df, team_abbr.reset_index(drop=True)], axis=1)
 
 # 對類別欄位進行 One-Hot Encoding
-train_df_encoded = pd.get_dummies(merged_inner, columns=["home_team_abbr", "away_team_abbr"])
+train_df_encoded = pd.get_dummies(team_abbr, columns=["home_team_abbr", "away_team_abbr"])
 
 c = 0.0011
 model = LogisticRegression(penalty='l2', C=c)
 model.fit(train_df_encoded, y)
 # %%
 # predict
-test_df = pd.read_csv("/Users/wukeyang/ntu_course/2024-HTML/final_project/html-2024-fall-final-project-stage-1/test_df_aug_sort.csv")
+test_df = pd.read_csv("/Users/wukeyang/ntu_course/2024-HTML/final_project/html2024-fall-final-project-stage-2/stage2_aug_sort.csv")
 
 test_df_encode = date_one_hot_process(test_df)
 
@@ -325,7 +340,7 @@ import csv
 data_list = y_submmit
 
 # 指定輸出的 CSV 文件名稱
-output_file = 'output/logstic aug select 65 debug.csv'
+output_file = 'output/logstic only one hot team stage2.csv'
 
 # 打開文件並寫入內容
 with open(output_file, mode='w', newline='', encoding='utf-8') as file:
