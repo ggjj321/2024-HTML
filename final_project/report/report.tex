@@ -20,7 +20,7 @@ We first proposed a hypothesis that there exists a mutual dominance relationship
 
 \subsection{Mutual Dominance Relationship Among Teams}  
 
-To test this hypothesis, we performed an experiment where the home team abbreviation and the away team abbreviation were one-hot encoded, and all other features were excluded. In this experiment, there were no feature selection combinations; only different \(L_2\) regularization constraints were tested. The results showed that the best validation accuracy was 0.54, with Stage 1 achieving 0.56843 and Stage 2 achieving 0.54069.
+To test this hypothesis, we performed an experiment where the home team abbreviation and the away team abbreviation were one-hot encoded, and all other features were excluded. In this experiment, there were no feature selection combinations; only different \(L_2\) regularization constraints were tested.
 
 % From the figure, it can be observed that as the constraint becomes smaller, the corresponding \(\lambda\) (regularization strength) becomes larger. Consequently, the left side of the line plot corresponds to underfitting, while the right side corresponds to overfitting. This hypothesis-based approach effectively evaluates whether overfitting occurs.
 
@@ -57,15 +57,14 @@ Here, \( k \) represents the number of groups, \( n_i \) is the sample size of t
 \toprule
 \textbf{Feature} & \textbf{Stage 1} & \textbf{Stage 2} & \textbf{Validation} \\ 
 \midrule
-One-hot team name & 0.56843 & 0.54069 & 0.54 \\ 
-One-hot team name + best feature & \textbf{0.58037} & \textbf{0.58554} & 0.5667 \\ 
+One hot team abbr & 0.56843 & 0.54069 & 0.54 \\ 
+One hot team abbr + feature selection & \textbf{0.58037} & \textbf{0.58554} & 0.5667 \\ 
 \bottomrule
 \end{tabular}
 \caption{Performance comparison of features in different stages and validation.}
 \label{tab:final_results}
 \end{table}
 
-From the above experiments, we observed that applying one-hot encoding to team names followed by selecting the best features using \texttt{SelectKBest} achieved scores above 0.58 for both Stage 1 and Stage 2. Even with different test data, this approach still yielded satisfactory results, suggesting that this method effectively mitigates overfitting.
-
+From the above experiments, we observed that applying one-hot encoding to team abbreviation followed by feature selection achieved scores above 0.58 for both Stage 1 and Stage 2. Even with different test data, this approach still yielded satisfactory results, suggesting that this method effectively mitigates overfitting.
 
 \end{document}

@@ -25,6 +25,9 @@ liblinear/
 mnist.scale
 mnist.scale.t
 
+madelon
+madelon.t
+
 __pycache__/
 
 output/

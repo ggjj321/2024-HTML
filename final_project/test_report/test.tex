@@ -1,0 +1,418 @@
+\documentclass[12pt,a4paper]{article}
+
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}  % Use Input in the format of Algorithm
+\renewcommand{\algorithmicensure}{\textbf{Output:}} % Use Output in the format of Algorithm
+\algnewcommand\algorithmicforeach{\textbf{for each}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}
+
+\title{\normalsize 113-1 Machine Learning final report, Team : ChatGPT: Overfit Avengers}
+\author{\small You}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+In this final project, to accurately predict the outcomes of baseball games between home and away teams, we first addressed missing values in the raw dataset obtained from Kaggle by applying appropriate imputation techniques. Additionally, we performed data augmentation based on two distinct stages to enhance the dimensionality of the features, thereby enabling the models to learn complex decision boundaries.
+Subsequently, we employed four machine learning models: Logistic Regression, Neural Network, Random Forest, and Support Vector Machine. For each model, we applied tailored feature selection methods, cross-validation strategies, and regularization techniques to prevent overfitting while ensuring the models could effectively capture the complex boundaries in the data.
+The experimental results demonstrated that Logistic Regression and Neural Network models exhibited superior performance in Stage 1 and Stage 2, respectively. This project successfully achieved its objective of predicting the outcomes of baseball games, fulfilling the goals set for this final project.
+
+\section{Feature Engineering}
+
+\subsection{missing value}
+\paragraph{\textbf{Stage 1}}
+For numerical features, missing values were filled using a sequential approach. First, the current season average prior to the game date was used. If values were still missing, the previous season's full-season average was applied. For cases where missing values persisted (e.g., during the first season), values were imputed based on the characteristics of the data, using $0.5$ or $0$ as appropriate. For categorical features, such as the \texttt{is\_night\_game} field, missing values were filled via random sampling based on the feature's historical probability distribution. Missing values in the \texttt{season} field were handled by using other time-related fields to infer and impute the appropriate season. For test data, the game dates were set to occur after the training set's time period to facilitate feature augmentation.
+
+\paragraph{\textbf{Stage 2}}
+In Stage 2, the current season's averages were skipped. Instead, missing values were filled directly using the full-season averages of the previous season, ensuring consistency across the dataset.
+
+\subsection{feature augmentation}
+Feature engineering plays a critical role in improving model performance by transforming raw data into meaningful features. In this work, we designed specific features to capture various performance aspects of teams and players. These features are categorized into three primary types: \textbf{Win Rate Related Indicators}, \textbf{Trend Indicators}, \textbf{Advantage Indicators}, and \textbf{Stability Indicators}. Each type serves a unique purpose in understanding team strength, quantifying trends, comparative advantages, and consistency, which are essential for accurate predictions.
+
+\paragraph{\textbf{Trend Indicators}}
+Trend indicators are designed to capture recent changes in performance. These are calculated as the difference between the 10-game moving average and either the all-time average or the current season's average. Specifically:
+\begin{align*}
+\text{Trend Indicator} &= \text{10-game Avg.} - \text{ All-time/Current season Avg.}
+\end{align*}
+
+\paragraph{\textbf{Advantage Indicators}}
+Advantage indicators reflect the comparative performance differences between the home team and the away team. These are computed by subtracting the away team's metric from the home team's metric. For example:
+\begin{align*}
+\text{Advantage Indicator} &= \text{Home Team Metric} - \text{Away Team Metric}
+\end{align*}
+Where the metric could represent values such as Earned Run Average (ERA), Strikeout Rate, or Batting Average.
+
+\paragraph{\textbf{Stability Indicators}}
+Stability indicators measure the consistency of a performance metric using the ratio of the standard deviation to the mean. A lower value indicates more stable and consistent performance, while a higher value indicates greater variability. This is formally expressed as:
+
+\[
+\text{Stability Indicator} = \frac{\text{Standard Deviation}}{\text{Mean}}
+\]
+
+For example, the stability of ERA is:
+
+\[
+\text{ERA Stability} = \frac{\text{ERA Standard Deviation}}{\text{ERA Mean}}
+\]
+
+\small
+\begin{longtable}{p{0.4\textwidth} p{0.7\textwidth}}
+\toprule
+\textbf{Feature Type}          & \textbf{Feature}                            \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Feature Type}          & \textbf{Feature}                            \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\caption{Shared features for both stages.} % 標題放置於此
+\label{tab:shared_features}
+\endlastfoot
+Trend Features                 & ERA Trend                                   \\
+                                & Strikeout Rate Trend                        \\
+                                & Hit Rate Trend                              \\
+                                & Walk Rate Trend                             \\
+Advantage Features             & ERA Advantage                              \\
+                                & Strikeout Rate Advantage                    \\
+                                & Hit Rate Advantage                          \\
+                                & Walk Rate Advantage                         \\
+                                & Batting Average Advantage                   \\
+                                & On-Base Percentage (OBP) Advantage          \\
+                                & OPS Advantage                               \\
+                                & Leverage Index Advantage                    \\
+                                & Win Probability Added (WPA) Advantage       \\
+                                & Run-Batted-In (RBI) Advantage               \\
+Stability Features             & ERA Stability                              \\
+                                & Strikeout Rate Stability                    \\
+                                & Hit Rate Stability                          \\
+                                & Walk Rate Stability                         \\
+                                & Batting Average Stability                   \\
+                                & On-Base Percentage (OBP) Stability          \\
+                                & On-base Plus Slugging (OPS) Stability       \\
+                                & Leverage Index Stability                    \\
+                                & Win Probability Added (WPA) Stability       \\
+                                & Run-Batted-In (RBI) Stability               \\
+\end{longtable}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{p{0.4\textwidth} p{0.7\textwidth}}
+\toprule
+\textbf{Feature Type}          & \textbf{Feature}                            \\
+\midrule
+Team Win Rate Related Features & Cumulative Win Rate for the Season          \\
+                                & Home/Away Win Rate for the Season           \\
+                                & Head-to-Head Win Rate                       \\
+Starting Pitcher Win Rate Features & Cumulative Win Rate for the Season          \\
+                                & Home/Away Performance for the Season        \\
+                                & Recent Performance Trends                   \\
+                                & Career Win Rate                             \\
+\bottomrule
+\end{tabular}
+\caption{Non-shared features specific to Stage 1.}
+\label{tab:non_shared_stage1}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{p{0.4\textwidth} p{0.7\textwidth}}
+\toprule
+\textbf{Feature Type}          & \textbf{Feature}                            \\
+\midrule
+Team Win Rate Related Features & Overall Win Rate for the Previous Season    \\
+                                & Home/Away Win Rate for the Previous Season  \\
+                                & Historical Head-to-Head Win Rate            \\
+Starting Pitcher Win Rate Features & Win Rate for the Previous Season       \\
+                                & Home/Away Performance for the Previous Season \\
+                                & Career Win Rate                             \\
+\bottomrule
+\end{tabular}
+% }
+\caption{Non-shared features specific to Stage 2.}
+\label{tab:non_shared_stage2}
+\end{table}
+
+% \subsection{Feature Selection}  
+
+% When the feature dimensions are too high, the VC dimension also increases, leading to a more complex model that is prone to overfitting. Therefore, feature selection was performed. The following will introduce various types of feature selection methods used in the experiment.
+
+% \subsubsection{SelectKbest}  
+
+% In this case, ANOVA F-test was used to rank the features based on their importance. The ANOVA F-test evaluates whether the mean difference of a feature across different classes is statistically significant. If a feature has a high discriminative ability for class labels, its mean value will vary significantly across different classes, resulting in a higher F-score. The formula for ANOVA is as follows:
+
+% \[
+% F = \frac{\text{Between-group Variance}}{\text{Within-group Variance}}
+% \]
+
+% Where:
+% \[
+% \text{Between-group Variance} = \frac{\sum_{i=1}^{k} n_i (\bar{x}_i - \bar{x}_T)^2}{k-1},
+% \]
+% \[
+% \text{Within-group Variance} = \frac{\sum_{i=1}^{k} \sum_{j=1}^{n_i} (x_{ij} - \bar{x}_i)^2}{N-k}.
+% \]
+
+% Here, \( k \) represents the number of groups, \( n_i \) is the sample size of the \( i \)-th group, \( \bar{x}_i \) is the mean of the \( i \)-th group, \( \bar{x}_T \) is the overall mean, and \( N \) is the total number of samples.
+
+\section{Experiment}
+\subsection{logistic regression}
+
+For binary classification, logistic regression was initially used for experimentation. Logistic regression computes the weighted sum of features through a linear function, and the result is transformed into a probability using the sigmoid function. The corresponding formula is as follows:
+\[
+h(\mathbf{x}) = \frac{1}{1 + \exp(-\mathbf{w}^T \mathbf{x})}
+\]
+The model predicts the probability of the home team winning. If the probability exceeds 50\%, the home team is classified as the winner; otherwise, it is classified as a loss.
+
+We first proposed a hypothesis that there exists a mutual dominance relationship among teams. Based on this hypothesis, additional features were gradually introduced. To prevent overfitting, \( L_2 \) regularization was applied in logistic regression. The process started by selecting 5 features and gradually increased to 120 features, adding 5 features at a time. For each set of features, various \( L_2 \) regularization constraints, ranging from 0.00001 to 0.02, were tested. Finally, 5-fold cross-validation was conducted to identify the optimal combination of the number of features and the regularization constraint.
+
+\subsubsection{Mutual Dominance Relationship Among Teams}  
+
+To test this hypothesis, we performed an experiment where the home team abbreviation and the away team abbreviation were one-hot encoded, and all other features were excluded. In this experiment, there were no feature selection combinations; only different \(L_2\) regularization constraints were tested.
+
+\subsubsection{SelectKBest Feature Selection}  
+
+When the feature dimensions are too high, the VC dimension also increases, leading to a more complex model that is prone to overfitting. Therefore, feature selection was performed. In this case, ANOVA F-test was used to rank the features based on their importance. The ANOVA F-test evaluates whether the mean difference of a feature across different classes is statistically significant. If a feature has a high discriminative ability for class labels, its mean value will vary significantly across different classes, resulting in a higher F-score. The formula for ANOVA is as follows:
+
+\[
+F = \frac{\text{Between-group Variance}}{\text{Within-group Variance}}
+\]
+
+Where:
+\[
+\text{Between-group Variance} = \frac{\sum_{i=1}^{k} n_i (\bar{x}_i - \bar{x}_T)^2}{k-1},
+\]
+\[
+\text{Within-group Variance} = \frac{\sum_{i=1}^{k} \sum_{j=1}^{n_i} (x_{ij} - \bar{x}_i)^2}{N-k}.
+\]
+
+Here, \( k \) represents the number of groups, \( n_i \) is the sample size of the \( i \)-th group, \( \bar{x}_i \) is the mean of the \( i \)-th group, \( \bar{x}_T \) is the overall mean, and \( N \) is the total number of samples.
+
+% From the figure, it can be observed that as the constraint becomes smaller, the corresponding \(\lambda\) (regularization strength) becomes larger. Consequently, the left side of the line plot corresponds to underfitting, while the right side corresponds to overfitting. This hypothesis-based approach effectively evaluates whether overfitting occurs.
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.3\textwidth]{image.png} 
+%     \caption{An example figure.}
+%     \label{fig:example} 
+% \end{figure}
+
+% \subsection{Experiment Result}  
+
+% \begin{table}[h!]
+% \centering
+% \begin{tabular}{lccc}
+% \toprule
+% \textbf{Feature} & \textbf{Stage 1} & \textbf{Stage 2} & \textbf{Validation} \\ 
+% \midrule
+% One hot team abbr & 0.56843 & 0.54069 & 0.54 \\ 
+% One hot team abbr + feature selection & \textbf{0.58037} & \textbf{0.58554} & 0.5667 \\ 
+% \bottomrule 
+% \end{tabular}
+% \caption{Performance comparison of features in different stages and validation.}
+% \label{tab:final_results}
+% \end{table}
+
+% From the above experiments, we observed that applying one-hot encoding to team abbreviation followed by feature selection achieved scores above 0.58 for both Stage 1 and Stage 2. Even with different test data, this approach still yielded satisfactory results, suggesting that this method effectively mitigates overfitting.
+
+\subsection{Neural Network}
+To address the limitations of manual feature engineering, we experimented with a neural network model that requires less feature preprocessing. Our neural network combines numerical and categorical data through an embedding layer and fully connected layers. The network can be expressed as:
+\[
+f(\mathbf{x}_{cat}, \mathbf{x}_{num}) = \sigma(MLP(Dropout(Emb(\mathbf{x}_{cat})\mathbin\Vert \mathbf{x}_{num})))
+\]
+where \(\sigma(x)\) is the Sigmoid function, \(\mathbin\Vert\) is the vector concatenation operator, and \(MLP:\mathbb{R}^{204}\xrightarrow{}\mathbb{R}\) is a standard feed-forward network with shape \((204, 64, 1)\) using \(LeakyReLU\) as the activation function. \(\mathbf{x}_{cat}\in\mathbb{N}^3\) is the vector of categorical data (home\_team\_abbr, away\_team\_abbr and is\_night\_time), and \(\mathbf{x}_{num}\in\mathbb{R}^{156}\) is the vector of numerical data. Note that all numerical data were standardized before feeding into the network to improve stability.
+
+We utilized an embedding layer to process categorical data, which can be formulated as:
+\[
+Emb(\mathbf{x})=T_1(x_1)\mathbin\Vert T_2(x_2)\mathbin\Vert\dots\mathbin\Vert T_C(x_C)
+\]
+where each \(T_i\) is a lookup table for the i-th categorical feature that maps each label in this category to a learnable n-dimensional vector, and \(C\) is the number of categorical features (in this task , \(n=16\) and \(C=3\)). We choose this approach over one-hot encoding because one-hot encoding introduces a lot of redundant zeros, which increases the input size, and therefore increases model size, making it more time-consuming to train and more vulnerable to over-fitting.
+
+We applied a dropout layer before feeding the data into the MLP. The dropout layer randomly sets 20\% of the inputs received to zero and then passes them to the next layer during training. This reduces over-fitting and thus improves generalizability.
+
+Since our task is a binary classification problem, we use binary cross entropy loss for training. We use Adam as the optimizer. The learning rate is set to 0.0005. Additionally, we set the weight\_decay parameter to 0.001 instead of the default value (zero). Higher weight\_decay corresponds to stronger regularization, which also helps reducing over-fitting. We trained the network for 10 epochs, with a batch size of 256. These hyperparameters were selected via 10-fold cross validation. 
+\subsection{Random Forest}
+For an ensemble learning approach, we employed Random Forest to improve robustness and reduce overfitting. Random Forest builds multiple decision trees using bootstrap sampling and combines their predictions. To reduce variance and improve generalization, the following configurations were made:
+\begin{itemize}
+    \item Set the number of decision trees to 100 (\texttt{n\_estimators=100}).
+    \item Used bootstrap sampling to generate different training subsets for each tree.
+    \item At each node, randomly selected a portion of the features for splitting to reduce the correlation between trees.
+\end{itemize}
+
+In the Random Forest experiment, we initially employed the SelectKBest feature selection method, consistent with the approach used in Logistic Regression, and applied one-hot encoding to all categorical features. Numerical features were retained without any transformation. In the second stage of the Random Forest model, we introduced a new feature selection method: SequentialFeatureSelector (SFS). This method is capable of capturing the interactions between features and selects the optimal feature combinations based on performance indices such as accuracy, making it particularly well-suited for nonlinear models.
+
+Therefore, feature selection in the second stage was conducted in two steps: first, the SelectKBest method was used to select the top 30 features, and then the SFS method, combined with the Random Forest model, was applied to further refine the selection of the most relevant features. Finally, a Random Forest model was trained using these selected features to evaluate their impact on model performance.
+% \subsection{Experiment Result}  
+
+% \begin{table}[h!]
+%     \centering
+%     \begin{tabular}{lccccc}
+%     \toprule
+%     \textbf{Feature} & \textbf{Model}  & \textbf{Stage 1 Public} & \textbf{Stage 1 Private} & \textbf{ Validation} \\ 
+%     \midrule
+%     RandomForest & SelectKBest & 0.58521 & 0.55620 & 0.5354 \\ 
+%     LogisticRegression & SelectKBest  & \textbf{0.58424} & 0.57402 & 0.5586 \\ 
+%     \midrule
+%     \textbf{Feature} & \textbf{Model} & \textbf{Stage 2 Public} & \textbf{Stage 2 Private} & \textbf{ Validation} \\ 
+%     \midrule
+%     RandomForest & SelectKBest+SFS  & 0.57392 & 0.55310 & 0.5431 \\ 
+%     LogisticRegression & SelectKBest  & \textbf{0.59800} & 0.55310 & 0.5591 \\ 
+%     \bottomrule
+%     \end{tabular}
+%     \caption{Performance comparison of features in different stages and validation.}
+%     \label{tab:final_results}
+%     \end{table}
+    
+    
+% From the above experiments, we observed that when feature selection using selectKbest was applied, the LogisticRegression model outperformed RandomForest, allowing us to achieve a 20th place ranking in the Stage 2 public leaderboard. However, the ranking dropped to 76th place on the private leaderboard.
+
+% This phenomenon may be related to the distribution characteristics of the test data. We found that the model achieved a score of approximately 0.59 in the first 50\% of the test data, but the score dropped significantly to 0.54 in the last 50\% of the data.
+
+% It is possible that there are distribution differences between the first and last halves of the test data, causing the model to lose accuracy in the latter part. Alternatively, the decline may be due to insufficient generalization ability.
+
+\subsection{Support Vector Machine}
+
+Lastly, we experimented with linear SVM for simple yet robust binary classification. Linear SVM separates data by finding a separating hyperplane that maximizes the margin (the shortest distance from the data points to the hyperplane) with respect to regularization constraints, which makes it more resilient to noises. Althought it is possible to apply nonlinear kernels to SVM to learn more complex patterns, it also greatly increases training time and memory consumption, therefore we adopted linear kernel for this task.
+
+For feature selection, since training a linear SVM is rather fast, we experimented with an automatic feature selection technique based on the simulated annealing (SA) algorithm. SA is a randomized optimization algorithm that searches for local minima of an objective function by randomly jump to different "states". The probability of state changing depends on the current "temperature" and the "energy difference" between the current and target states. The pseudo-code of SA feature selection algorithm is as follows:
+
+\begin{algorithm}
+\caption{Simulated Annealing Feature Selection}
+\begin{algorithmic}[1]
+\Require Initial temperature $T_0$, Minimum temperature $T_{min}$, Cooling rate $\alpha$, Energy scaling parameter $k$, Maximum number of feature changes $n$, Feature set $F_{all}$, Initial feature subset $F_0$, Cross validation procedure $CV$
+\Ensure
+\State Initialize current solution $F \gets F_0$
+\State Initialize current temperature $T \gets T_0$
+\State Set the stopping temperature $T_{min}$ and cooling rate $\alpha$
+\While{$T > T_{min}$}
+    \State Initialize new state $F_{new} \gets F$
+    \State Randomly include or exclude at most $n$ features from $F_{new}$
+    \State Compute the change in cross-validation performance $\Delta E \gets k \cdot [CV(F) - CV(F_{\text{new}})]$
+    \If{$\Delta E < 0$}
+        \State Accept $F_{\text{new}}$: $F \gets F_{\text{new}}$
+    \Else
+        \State Accept $F_{\text{new}}$ with probability $e^{-\Delta E / T}$
+    \EndIf
+    \State Reduce the temperature: $T \gets \alpha \cdot T$
+\EndWhile
+\State Return the best solution found $F_{best}$
+\end{algorithmic}
+\end{algorithm}
+
+In our experiment, we set the parameters as follows: \(T_0=10\), \(T_{min}=10^{-6}\), \(\alpha=0.9\), \(n=10\) and \(k=5\). \(F_0\) is generated by randomly select 5\% of the features from \(F_{all}\). \(CV\) is a 10-fold cross validation procedure that returns the mean accuracy across each folds. Within each cross-validation procedure, we train a linear SVM with \(C=0.01\).
+
+By starting the SA feature selection algorithm  with few features, it is more likely to return a small subset of useful features, with the additional benefit of increasing searching speed since the training and prediction time of linear SVM both grows linearly with respect to the number of features. With this algorithm, we were able to obtain a feature subset that is only roughly half of the original size.
+
+% The cross-validation performance and the leaderboard scores are listed below:
+% \begin{table}[h!]
+% \centering
+% \begin{tabular}{lccc}
+% \toprule
+% \textbf{Feature} & \textbf{Stage 1} & \textbf{Stage 2} & \textbf{Validation} \\ 
+% \midrule
+% All features & 0.57952 & \textbf{0.54575} & 0.5610 \\ 
+% SA feature selection & \textbf{0.58859} & 0.54330 & 0.5658 \\ 
+% \bottomrule
+% \end{tabular}
+% \caption{Performance comparison of features in different stages and validation.}
+% \label{tab:final_results}
+% \end{table}
+
+% From the table above, we observed that SA feature selection works better than using all features in Stage 1, but works slightly worse in Stage 2. Overall, SA feature selection helps training the model more efficiently without losing too much performance, if not improving it.
+
+\section{Experimental Result And Comparison}
+The experimental results for the various feature selection methods and model combinations mentioned above are shown in the table below.
+
+\begin{table}[h!]
+\centering
+\small % 使用小字體
+\setlength{\tabcolsep}{8pt} % 調整列間距
+\renewcommand{\arraystretch}{1.5} % 調整行距
+\resizebox{\textwidth}{!}{ % 自動調整表格寬度以適配頁面
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Model} & \multicolumn{1}{c}{\textbf{Feature Selection Method}}  & \textbf{Stage1 Public / Private Score} & \textbf{Stage2 Public / Private Score} \\
+\midrule
+Logistic Regression & Mutual Dominance Relationship  & 0.56843/0.57304 & 0.54069/0.53513 \\ 
+Logistic Regression & SelectKBest  & 0.58424/0.57402 & 0.59800/0.55310 \\ 
+RandomForest & SelectKBest+stage 2 SFS   & 0.58521/0.55620 & 0.57392/0.55310 \\ 
+Neural Network & All Feature  & 0.58553/0.58309 & 0.57225/0.56127 \\ 
+Linear SVM & All Feature  & 0.58586/0.57952 & 0.56395/0.54575 \\ 
+Linear SVM & SA Feature Selection  & 0.58553/0.58859 & 0.57973/0.54330 \\ 
+\bottomrule
+\end{tabular}
+}
+\caption{All Experimental Result}
+\label{tab:non_shared_stage2}
+\end{table}
+    
+
+% \begin{tabular}{p{0.15\textwidth} p{0.15\textwidth} p{0.15\textwidth} p{0.15\textwidth} p{0.15\textwidth} p{0.15\textwidth} p{0.1\textwidth}}
+% \hline
+% Column 1 & Column 2 & Column 3 & Column 4 & Column 5 & Column 6 & Column 7 \\
+% \hline
+% ... & ... & ... & ... & ... & ... & ... \\
+% \hline
+% \end{tabular}
+
+\subsection*{Comparison of Methods}
+
+\subsubsection*{Logistic Regression}
+\begin{itemize}
+    \item \textbf{Accuracy}: In terms of accuracy, Logistic Regression performs moderately well in Stage 1 but achieves the highest average accuracy in Stage 2. It exhibits stable and reliable performance across both public and private stages.
+    \item \textbf{Efficiency}: Logistic Regression has the shortest training time, allowing for extensive experimentation with various parameters, feature selection, and normalization techniques.
+    \item \textbf{Scalability}: When dealing with a high number of features, it may require excessive iterations during gradient descent. Feature selection is necessary to reduce the dimensionality of the feature space.
+    \item \textbf{Interpretability}: The model provides insight into the importance of individual features through the weights of parameters, making it highly interpretable.
+\end{itemize}
+
+\subsubsection*{Random Forest}
+\begin{itemize}
+    \item \textbf{Accuracy}: Random Forest does not achieve the highest accuracy scores and demonstrates significant differences between the public and private stages in Stage 1, indicating lower stability in performance.
+    \item \textbf{Efficiency}: The training process is relatively slow, often requiring the assistance of a Sequential Feature Selector.
+    \item \textbf{Scalability}: [Details missing, need clarification.]
+    \item \textbf{Interpretability}: The importance of features can be assessed through leaf weights, providing relatively high interpretability.
+\end{itemize}
+
+\subsubsection*{Neural Network}
+\begin{itemize}
+    \item \textbf{Accuracy}: Neural Networks demonstrate strong performance across all stages, achieving the highest average accuracy overall.
+    \item \textbf{Efficiency}: Training time is lengthy, making Neural Networks the least efficient method.
+    \item \textbf{Scalability}: They excel in learning complex decision boundaries, particularly as the number of features and dimensions increases. However, this also makes them prone to overfitting.
+    \item \textbf{Interpretability}: The relationships between features are difficult to understand, resulting in low interpretability.
+\end{itemize}
+
+\subsubsection*{Linear SVM}
+\begin{itemize}
+    \item \textbf{Accuracy}: Linear SVM achieves comparable accuracy to Logistic Regression in Stage 1 but exhibits significant discrepancies between public and private stages in Stage 2, leading to lower stability.
+    \item \textbf{Efficiency}: [Details missing, need clarification.]
+    \item \textbf{Scalability}: [Details missing, need clarification.]
+    \item \textbf{Interpretability}: The model's interpretability depends on the linear weights assigned to features, making it somewhat transparent in revealing the relationships between input features and the decision boundary.
+\end{itemize}
+
+\section*{Conclusion}
+
+After comprehensive consideration, we conclude that \textbf{Logistic Regression} is the best model. Although its main limitation lies in its inability to capture complex relationships between data, which prevents it from learning intricate decision boundaries as effectively as other models, its advantages outweigh this drawback. Logistic Regression demonstrates stable and above-average scores on both public and private leaderboards across both stages. Its high training efficiency allows for extensive experimentation with different feature selection and normalization parameters, effectively mitigating overfitting. Additionally, its high interpretability enables a deeper understanding of feature importance. Therefore, we ultimately select Logistic Regression as the best model.
+
+\end{document}
